@@ -157,7 +157,7 @@ class VirtualStockAccount():
             'hasWarrant': 'true',
         })
 
-    def account_status(self):
+    def status(self):
 
         """
         查看目前account的狀態：
@@ -183,7 +183,7 @@ class VirtualStockAccount():
 
         return json.loads(res.text)
 
-    def clear_account(self):
+    def sell_all(self):
 
         """將所有的股票做即刻賣出的動作"""
 
@@ -267,7 +267,7 @@ class VirtualStockAccount():
 
         self.buy_list(newlist - oldlist)
 
-    def account_info(self):
+    def info(self):
 
         res = self.ses.get('https://www.cmoney.tw/vt/ashx/accountdata.ashx?act=AccountInfo&aid='+self.aid+'&_=1572343162391')
 
@@ -278,7 +278,7 @@ class VirtualStockAccount():
     def sync(self, position, lowest_fee=20, discount=1, add_cost=10):
 
         # get total money
-        account_info = self.account_info()
+        account_info = self.info()
         money = int(account_info['AllAssets'].replace(',', ''))
 
         print('total money', money)
@@ -286,7 +286,13 @@ class VirtualStockAccount():
         # get price of the stock
         import time
         infos = {}
-        slist = position[(position != 0)].index.tolist()
+        if isinstance(position, pd.Series)
+            slist = position[(position != 0)].index.tolist()
+        elif isinstance(position, list):
+            slist = position
+        else:
+            raise Exception("type of position should be pd.Series or list")
+        
         for sid in slist:
             print(sid)
             infos[sid] = self.get_price(sid) # RefPrice
