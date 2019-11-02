@@ -102,9 +102,9 @@ vs.cancel_all_orders()
 ### 課程同學 Bonus!
 
 
-假如有上「小資族選股策略」的同學，想要paper trade你的策略，配合最後的優等生策略，可以直接使用：
+假如有上(「Python 小資族選股策略」)[https://hahow.in/cr/python-finance]的同學，想要paper trade你的策略，配合最後的優等生策略，可以直接使用：
 ```
-vs.sync(strategy(data))
+vs.sync(mystrategy(data))
 ```
 
 來 paper trade 任何選股策略喔！
