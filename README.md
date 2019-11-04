@@ -1,17 +1,4 @@
----
-title: 投資組合 Paper Trading 1分鐘就上手（Cmoney 大富翁股票 API）
-date: 2019-11-02 13:07:19
-tags: ["python","程式交易"]
-categories: 財經Python教
----
-
-沒有錢投資嗎？想要鍛鍊投資技巧又不虧錢嗎？
-除了回測外，想要有接近真實情況的投資模擬嗎？
-那你一定要試試看我寫的這個小程式：CmoneyVirtualAccount
-他可以幫你模擬股票買賣的獲利狀況，讓你在沒有錢的時候，可以拿來做練習。
-
-<center>{% asset_img thumbnail.png thumbnail %}</center>
-
+# CMoney Stock Paper Trading API
 ### 為什麼要用 Paper Trading
 Paper Trading 可以幫助我們更理解市場上投資的真實狀況，
 顯示我們「假如」持有某種資產組合的報酬率，
