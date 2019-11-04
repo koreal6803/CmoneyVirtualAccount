@@ -42,7 +42,7 @@ Paper Trading 另一個關鍵是，你要把它當成真的$（雖然很難）�
 ### 1. 安裝
 
 這個程式沒什麼特別的安裝方法，可以打開anaconda prompt 輸入以下指令
-{% codeblock %}
+```
 git clone https://github.com/koreal6803/CmoneyVirtualAccount.git
 
 # mac 使用的指令
@@ -50,7 +50,7 @@ mv CmoneyVirtualAccount/cmoneyVirtualAccount ./cmoney
 
 # windows 使用的指令
 move CmoneyVirtualAccount/cmoneyVirtualAccount ./cmoney
-{% endcodeblock %}
+```
 
 ### 2. 申請帳號
 
@@ -60,7 +60,7 @@ https://www.cmoney.tw/vt/
 
 ### 3. 用程式操控
 然後就可以在此資料夾中，使用 Python 來做 Paper trading 囉！
-{% codeblock lang:python %}
+```
 from cmoney.stock import VirtualStockAccmount
 
 # 登入
@@ -120,16 +120,16 @@ vs.get_orders()
 # 刪除所有委託單
 vs.cancel_all_orders()
 
-{% endcodeblock %}
+```
 
 ### 課程同學 Bonus!
 
 
 假如有上「小資族選股策略」的同學，想要paper trade你的策略，配合最後的優等生策略，可以直接使用：
 
-{% codeblock %}
+```
 vs.sync(strategy(data))
-{% endcodeblock %}
+```
 
 來 paper trade 任何選股策略喔！
 
