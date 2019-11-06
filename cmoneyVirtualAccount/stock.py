@@ -187,7 +187,7 @@ class VirtualStockAccount():
 
         """將所有的股票做即刻賣出的動作"""
 
-        acc = self.account_status()
+        acc = self.status()
         time.sleep(self.wait_time)
         for s in acc:
             print('sell ', s['Id'], s['IQty'])
@@ -260,7 +260,7 @@ class VirtualStockAccount():
         """
 
         newlist = pd.Series(newlist)
-        status = self.account_status()
+        status = self.status()
         oldlist = pd.Series({s['Id']:s['IQty'] for s in status}).astype(int)
         newlist = newlist.reindex(oldlist.index | newlist.index).fillna(0)
         oldlist = oldlist.reindex(oldlist.index | newlist.index).fillna(0)
