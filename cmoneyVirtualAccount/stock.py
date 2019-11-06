@@ -286,7 +286,9 @@ class VirtualStockAccount():
         # get price of the stock
         import time
         infos = {}
-        if isinstance(position, pd.Series):
+        if isinstance(position, pd.DataFrame):
+            slist = position.iloc[-1][(position.iloc[-1] != 0)].index.tolist()
+        elif isinstance(position, pd.Series):
             slist = position[(position != 0)].index.tolist()
         elif isinstance(position, list):
             slist = position
