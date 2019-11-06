@@ -286,13 +286,13 @@ class VirtualStockAccount():
         # get price of the stock
         import time
         infos = {}
-        if isinstance(position, pd.Series)
+        if isinstance(position, pd.Series):
             slist = position[(position != 0)].index.tolist()
         elif isinstance(position, list):
             slist = position
         else:
             raise Exception("type of position should be pd.Series or list")
-        
+
         for sid in slist:
             print(sid)
             infos[sid] = self.get_price(sid) # RefPrice
