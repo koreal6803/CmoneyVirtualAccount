@@ -100,7 +100,7 @@ class VirtualStockAccount():
             })
         return json.loads(res.text)
 
-    def buy(self, sid, quantity, price=None):
+    def buy(self, sid, quantity, price=None, leverage=False):
 
         """
         購買兩張台泥股票:
@@ -112,6 +112,8 @@ class VirtualStockAccount():
         if price is None:
             price = '漲停'
             time.sleep(self.wait_time)
+            
+        tradekind = 'cd' if leverage else 'c'
 
         # act: NewEntrust
         # aid: 578325
@@ -128,12 +130,12 @@ class VirtualStockAccount():
             'stock': sid,
             'price': price,
             'ordqty': quantity,
-            'tradekind': 'c',
+            'tradekind': tradekind,
             'type': 'b',
             'hasWarrant': 'true',
         })
 
-    def sell(self, sid, quantity, price=None):
+    def sell(self, sid, quantity, price=None, leverage=False):
 
         """
         賣出兩張台泥股票:
@@ -145,14 +147,16 @@ class VirtualStockAccount():
         if price is None:
             price = '跌停'
             time.sleep(self.wait_time)
+            
+        tradekind = 'sd' if leverage else 'c'
 
         res = self.ses.get('https://www.cmoney.tw/vt/ashx/userset.ashx', params={
             'act': 'NewEntrust',
             'aid': self.aid,
             'stock': sid,
             'price': price,
-            'ordqty': 1,
-            'tradekind': 'c',
+            'ordqty': quantity,
+            'tradekind': tradekind,
             'type': 's',
             'hasWarrant': 'true',
         })
@@ -194,7 +198,7 @@ class VirtualStockAccount():
             self.sell(s['Id'], s['IQty'])
             time.sleep(self.wait_time)
 
-    def buy_list(self, s):
+    def buy_list(self, s, leverage=False):
 
         """
         將清單中的股票即刻買入的動作，其中s為一個dictionary或series，
@@ -216,12 +220,12 @@ class VirtualStockAccount():
         """
 
         for sid, q in s.items():
-            print('buy ', sid.split()[0], q)
+            print('buy ', int(sid.split()[0]), q, 'leverage', leverage)
             if q > 0:
 
-                self.buy(sid.split()[0], int(q))
+                self.buy(sid.split()[0], int(q), leverage=leverage)
             elif q < 0:
-                self.sell(sid.split()[0], int(abs(q)))
+                self.sell(sid.split()[0], int(abs(q)), leverage=leverage)
             time.sleep(self.wait_time)
 
     def get_orders(self):
@@ -253,7 +257,7 @@ class VirtualStockAccount():
 
                 time.sleep(self.wait_time)
 
-    def rebalance(self, newlist):
+    def rebalance(self, newlist, leverage=False):
 
         """
         將持股更新成newlist，newlist的結構可以參考buy_list的input，是一樣的。
@@ -265,7 +269,7 @@ class VirtualStockAccount():
         newlist = newlist.reindex(oldlist.index | newlist.index).fillna(0)
         oldlist = oldlist.reindex(oldlist.index | newlist.index).fillna(0)
 
-        self.buy_list(newlist - oldlist)
+        self.buy_list(newlist - oldlist, leverage)
 
     def info(self):
 
@@ -275,7 +279,7 @@ class VirtualStockAccount():
         account_info = json.loads(res.text)
         return account_info
 
-    def sync(self, position, lowest_fee=20, discount=1, add_cost=10):
+    def calculate_weight(self, position, lowest_fee=20, discount=1, add_cost=10, short=False):
 
         # get total money
         account_info = self.info()
@@ -320,6 +324,15 @@ class VirtualStockAccount():
                 stock_list = stock_list.loc[stock_list != stock_list.max()]
             else:
                 break
-
+                
+        if short:
+            ret = -ret
+            
+        ret.to_csv('position' + str(self.aid) + '.csv')
         slist = ret.to_dict()
-        self.rebalance(slist)
+        return slist
+
+    def sync(self, *arg1, short=False, **arg2):
+        slist = self.calculate_weight(*arg1, short=short, **arg2)
+        self.rebalance(slist, leverage=short)
+
