@@ -100,7 +100,19 @@ class VirtualStockAccount():
             })
         return json.loads(res.text)
 
-    def buy(self, sid, quantity, price=None, leverage=False):
+    def entrust(self, sid, price, quantity, tradekind, type_):
+        res = self.ses.get('https://www.cmoney.tw/vt/ashx/userset.ashx', params={
+            'act': 'NewEntrust',
+            'aid': self.aid,
+            'stock': sid,
+            'price': price,
+            'ordqty': quantity,
+            'tradekind': tradekind,
+            'type': type_,
+            'hasWarrant': 'true',
+        })
+
+    def buy(self, sid, quantity, price='漲停'):
 
         """
         購買兩張台泥股票:
@@ -109,33 +121,10 @@ class VirtualStockAccount():
         假如輸入了price就是限價買入
         """
 
-        if price is None:
-            price = '漲停'
-            time.sleep(self.wait_time)
-            
-        tradekind = 'cd' if leverage else 'c'
+        self.entrust(sid, price, quantity, tradekind='c', type_='b')
 
-        # act: NewEntrust
-        # aid: 578325
-        # stock: 1101
-        # price: 漲停
-        # ordqty: 1
-        # tradekind: c
-        # type: b
-        # hasWarrant: true
-        # _: 1572344098102
-        res = self.ses.get('https://www.cmoney.tw/vt/ashx/userset.ashx', params={
-            'act': 'NewEntrust',
-            'aid': self.aid,
-            'stock': sid,
-            'price': price,
-            'ordqty': quantity,
-            'tradekind': tradekind,
-            'type': 'b',
-            'hasWarrant': 'true',
-        })
 
-    def sell(self, sid, quantity, price=None, leverage=False):
+    def sell(self, sid, quantity, price='跌停'):
 
         """
         賣出兩張台泥股票:
@@ -144,22 +133,13 @@ class VirtualStockAccount():
         假如輸入了price就是限價買入
         """
 
-        if price is None:
-            price = '跌停'
-            time.sleep(self.wait_time)
-            
-        tradekind = 'sd' if leverage else 'c'
+        self.entrust(sid, price, quantity, 'c', 's')
 
-        res = self.ses.get('https://www.cmoney.tw/vt/ashx/userset.ashx', params={
-            'act': 'NewEntrust',
-            'aid': self.aid,
-            'stock': sid,
-            'price': price,
-            'ordqty': quantity,
-            'tradekind': tradekind,
-            'type': 's',
-            'hasWarrant': 'true',
-        })
+    def sellshort(self, sid, quantity, price='跌停'):
+        self.entrust(sid, price, quantity, 'sd', 's')
+
+    def buytocover(self, sid, quantity, price='漲停'):
+        self.entrust(sid, price, quantity, 'sd', 'b')
 
     def status(self):
 
@@ -187,45 +167,14 @@ class VirtualStockAccount():
 
         return json.loads(res.text)
 
-    def sell_all(self):
-
-        """將所有的股票做即刻賣出的動作"""
-
-        acc = self.status()
-        time.sleep(self.wait_time)
-        for s in acc:
-            print('sell ', s['Id'], s['IQty'])
-            self.sell(s['Id'], s['IQty'])
-            time.sleep(self.wait_time)
-
-    def buy_list(self, s, leverage=False):
-
-        """
-        將清單中的股票即刻買入的動作，其中s為一個dictionary或series，
-        例如
-        以字典表示：
-
-        s = {
-            '1101': 2,
-            '2330': 1,
-        }
-
-        或是以pandas series表示：
-
-        1101    2
-        2330    1
-        dtype: int64
-
-        兩種都可以，假如數字為負號，則會進行賣出的動作
-        """
+    def listEntrust(self, f, s):
 
         for sid, q in s.items():
-            print('buy ', int(sid.split()[0]), q, 'leverage', leverage)
-            if q > 0:
+            if q == 0:
+                continue
+            print('new entrust', sid, q)
 
-                self.buy(sid.split()[0], int(q), leverage=leverage)
-            elif q < 0:
-                self.sell(sid.split()[0], int(abs(q)), leverage=leverage)
+            f(sid.split()[0], abs(int(q)))
             time.sleep(self.wait_time)
 
     def get_orders(self):
@@ -246,30 +195,66 @@ class VirtualStockAccount():
         orders = self.get_orders()
         time.sleep(self.wait_time)
         for o in orders:
-            print(o['Id'])
             if o['CanDel'] == '1':
+                print('Cancel order', o['Id'])
                 res = self.ses.get('https://www.cmoney.tw/vt/ashx/accountdata.ashx', params={
                     'act': 'DeleteEntrust',
                     'aid': self.aid,
                     'GroupId': 0,
                     'OrdNo': o['CNo'],
                 })
-
                 time.sleep(self.wait_time)
 
-    def rebalance(self, newlist, leverage=False):
+    def rebalance(self, newlist):
 
         """
         將持股更新成newlist，newlist的結構可以參考buy_list的input，是一樣的。
         """
 
-        newlist = pd.Series(newlist)
-        status = self.status()
-        oldlist = pd.Series({s['Id']:s['IQty'] for s in status}).astype(int)
-        newlist = newlist.reindex(oldlist.index | newlist.index).fillna(0)
-        oldlist = oldlist.reindex(oldlist.index | newlist.index).fillna(0)
+        newlist = pd.Series(newlist).astype(int)
+        newlist.index = pd.Series(newlist.index).astype(str)
 
-        self.buy_list(newlist - oldlist, leverage)
+        status = self.status()
+        if len(status):
+            df = (pd.DataFrame(status)[['Id', 'IQty', 'NowPr', 'ShowCost', 'Ratio', 'TkT']]).sort_values('Id')
+            df['Id'] = df['Id'].astype(str)
+        else:
+            df = pd.DataFrame(columns=['Id', 'IQty', 'NowPr', 'ShowCost', 'Ratio', 'TkT'])
+
+        ## 現股
+        def rebalance_type(tkt, newlist, long_entrust, short_entrust):
+
+            df_c = df[df['TkT'] == tkt]
+            oldlist_c = pd.Series(df_c['IQty'].values, index=df_c['Id'].values).astype(int)
+
+            def calc_diff(new, old):
+                new2 = new.reindex(old.index | new.index).fillna(0)
+                old2 = old.reindex(old.index | new.index).fillna(0)
+                return new2 - old2
+
+            diff_c = calc_diff(newlist, oldlist_c)
+            """
+            print("check diff -------------------------")
+            print(newlist)
+            print(oldlist_c)
+            print(diff_c)
+            print("check diff -------------------------")
+            """
+            print('------------------------------------------')
+            print('operaetions', tkt)
+            print("enter")
+            print(diff_c[diff_c > 0])
+            print("exit")
+            print(diff_c[diff_c < 0])
+            print('------------------------------------------')
+            #input()
+            self.listEntrust(long_entrust, diff_c[diff_c > 0])
+            self.listEntrust(short_entrust, diff_c[diff_c < 0])
+
+        rebalance_type('現股', newlist[newlist > 0], self.buy, self.sell)
+        rebalance_type('融券', -newlist[newlist < 0], self.sellshort, self.buytocover)
+
+
 
     def info(self):
 
@@ -324,10 +309,14 @@ class VirtualStockAccount():
                 stock_list = stock_list.loc[stock_list != stock_list.max()]
             else:
                 break
-                
-        if short:
+
+        if isinstance(short, bool) and short == False:
             ret = -ret
-            
+        elif isinstance(short, list) and short:
+            for s in short:
+                ret[s] = -ret[s]
+
+
         ret.to_csv('position' + str(self.aid) + '.csv')
         slist = ret.to_dict()
         return slist
