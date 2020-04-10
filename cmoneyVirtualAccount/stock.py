@@ -232,6 +232,12 @@ class VirtualStockAccount():
                 old2 = old.reindex(old.index | new.index).fillna(0)
                 return new2 - old2
 
+            print("------- TEST S ---------")
+            print(newlist)
+            print("------- TEST E ---------")
+            print(oldlist_c)
+            print("----------------")
+
             diff_c = calc_diff(newlist, oldlist_c)
             """
             print("check diff -------------------------")
@@ -251,8 +257,8 @@ class VirtualStockAccount():
             self.listEntrust(long_entrust, diff_c[diff_c > 0])
             self.listEntrust(short_entrust, diff_c[diff_c < 0])
 
-        rebalance_type('現股', newlist[newlist > 0], self.buy, self.sell)
-        rebalance_type('融券', -newlist[newlist < 0], self.sellshort, self.buytocover)
+        rebalance_type('現股', newlist[newlist >= 0], self.buy, self.sell)
+        rebalance_type('融券', -newlist[newlist <= 0], self.sellshort, self.buytocover)
 
 
 
@@ -310,7 +316,7 @@ class VirtualStockAccount():
             else:
                 break
 
-        if isinstance(short, bool) and short == False:
+        if isinstance(short, bool) and short == True:
             ret = -ret
         elif isinstance(short, list) and short:
             for s in short:
@@ -323,5 +329,5 @@ class VirtualStockAccount():
 
     def sync(self, *arg1, short=False, **arg2):
         slist = self.calculate_weight(*arg1, short=short, **arg2)
-        self.rebalance(slist, leverage=short)
+        self.rebalance(slist)
 
