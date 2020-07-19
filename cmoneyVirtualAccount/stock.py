@@ -264,7 +264,7 @@ class VirtualStockAccount():
 
     def info(self):
 
-        res = self.ses.get('https://www.cmoney.tw/vt/ashx/accountdata.ashx?act=AccountInfo&aid='+self.aid+'&_=1572343162391')
+        res = self.ses.get('https://www.cmoney.tw/vt/ashx/accountdata.ashx?act=AccountInfo&aid=%s&_=1572343162391' % self.aid)
 
 
         account_info = json.loads(res.text)
