@@ -48,7 +48,7 @@ https://www.cmoney.tw/vt/
 ### 3. 用程式操控
 然後就可以在此資料夾中，使用 Python 來做 Paper trading 囉！
 ```
-from cmoney.stock import VirtualStockAccmount
+from cmoney.stock import VirtualStockAccmount, ProfitLossType
 
 # 登入
 vs = VirtualStockAccount('your_account', 'your_password')
@@ -68,6 +68,15 @@ vs.status()
 
 # 查看現有資金
 vs.info()
+
+
+# 查看目前未實現損益
+vs.profit_loss(profitLossType=ProfitLossType.UNACCOMPLISHED)
+
+# 查看目前已實現損益
+# startTime default = 180 days ago
+# endTime default = today
+vs.profit_loss(profitLossType=ProfitLossType.ACCOMPLISHED, startTime= "2020-01-01", endTime="2020-06-31")
 
 # ------ #
 # 操作帳戶
