@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+from enum import Enum
+
 import requests
 import json
 import re
@@ -6,6 +9,11 @@ import pandas as pd
 import json
 import numpy as np
 
+class ProfitLossType(Enum):
+    ACCOMPLISHED = 'accomplished'
+    UNACCOMPLISHED = 'unaccomplished'
+    
+    
 class VirtualStockAccount():
 
     def __init__(self, email, password, wait_time=1):
@@ -264,7 +272,7 @@ class VirtualStockAccount():
 
     def info(self):
 
-        res = self.ses.get('https://www.cmoney.tw/vt/ashx/accountdata.ashx?act=AccountInfo&aid='+self.aid+'&_=1572343162391')
+        res = self.ses.get('https://www.cmoney.tw/vt/ashx/accountdata.ashx?act=AccountInfo&aid=%s&_=1572343162391' % self.aid)
 
 
         account_info = json.loads(res.text)
@@ -331,3 +339,24 @@ class VirtualStockAccount():
         slist = self.calculate_weight(*arg1, short=short, **arg2)
         self.rebalance(slist)
 
+    
+    def profit_loss(self, profitLossType: ProfitLossType,
+                    startTime: str = (datetime.now() - timedelta(days=180)).strftime("%Y-%m-%d"),
+                    endTime: str = datetime.now().strftime("%Y-%m-%d")):
+
+        """
+       輸入損益類型(profitLossType)
+       profitLossType => ProfitLossType.ACCOMPLISHED: "已實現損益"
+       profitLossType => ProfitLossType.UNACCOMPLISHED: "未實現損益"
+       """
+        params = {
+            'act': 'ProfitLoss',
+            'aid': self.aid,
+            'profitLossType': profitLossType.value
+        }
+        if profitLossType == ProfitLossType.ACCOMPLISHED:
+            params["startTime"] = startTime
+            params["endTime"] = endTime
+
+        res = self.ses.get('https://www.cmoney.tw/vt/ashx/accountdata.ashx', params=params)
+        return json.loads(res.text)
